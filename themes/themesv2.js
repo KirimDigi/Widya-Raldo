@@ -771,6 +771,25 @@ var eventUp = function eventUp(e) {
   window.removeEventListener(events[deviceType].move, eventMove, false);
 };
 var eventDown = function eventDown(e) {
+  // Check if target is inside a scrollable container (e.g. Love Story scroll list or Gallery grid)
+  var targetEl = e.target;
+  var isTargetScrollable = false;
+  var tempEl = targetEl;
+  while (tempEl && tempEl !== document.body && tempEl !== document.documentElement) {
+    var style = window.getComputedStyle(tempEl);
+    var overflowY = style.overflowY || style.overflow || '';
+    if ((overflowY === 'auto' || overflowY === 'scroll') && tempEl.scrollHeight > tempEl.clientHeight) {
+      isTargetScrollable = true;
+      break;
+    }
+    tempEl = tempEl.parentElement;
+  }
+
+  if (isTargetScrollable) {
+    // Let default touch/scroll behaviors work, do not intercept or swipe page
+    return;
+  }
+
   if (e.cancelable) e.preventDefault();
   initialY = !isTouchDevice() ? e.clientY : e.touches[0].clientY;
   window.addEventListener(events[deviceType].up, eventUp, false);
