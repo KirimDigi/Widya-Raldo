@@ -6,28 +6,42 @@ function doGet(e) {
     const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
     const data = sheet.getDataRange().getValues();
     
-    if (data.length <= 1) {
-      return ContentService.createTextOutput(JSON.stringify({ status: 'success', data: [] }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-    
-    const headers = data[0].map(h => h.toString().toLowerCase().trim());
     const rows = [];
     
-    for (let i = 1; i < data.length; i++) {
+    // Process all rows
+    for (let i = 0; i < data.length; i++) {
       const row = data[i];
-      const record = {};
-      headers.forEach((header, index) => {
-        let val = row[index];
-        if (header === 'timestamp' && val instanceof Date) {
-          val = val.toLocaleString('id-ID');
-        }
-        record[header] = val;
-      });
+      
+      // Skip header row if present in row 0
+      if (i === 0 && row[0] && row[0].toString().toLowerCase().trim().indexOf('timestamp') !== -1) {
+        continue;
+      }
+      
+      // If row has no timestamp and no name and no ucapan, skip
+      if (!row[0] && !row[1] && !row[2]) {
+        continue;
+      }
+      
+      let ts = row[0];
+      if (ts instanceof Date) {
+        ts = ts.toLocaleString('id-ID');
+      } else if (ts) {
+        ts = ts.toString();
+      } else {
+        ts = '';
+      }
+      
+      const record = {
+        'timestamp': ts,
+        'nama': row[1] ? row[1].toString().trim() : '',
+        'ucapan': row[2] ? row[2].toString().trim() : '',
+        'kehadiran': row[3] ? row[3].toString().trim() : '',
+        'jumlah_tamu': row[4] ? row[4].toString().trim() : ''
+      };
       rows.push(record);
     }
     
-    // Return newest comments first
+    // Return newest first
     rows.reverse();
     
     return ContentService.createTextOutput(JSON.stringify({ status: 'success', data: rows }))
@@ -54,10 +68,10 @@ function doPost(e) {
     }
     
     const timestamp = new Date();
-    const namaTamu = postData['nama tamu'] || postData['nama'] || '';
+    const namaTamu = postData['nama'] || postData['nama tamu'] || '';
     const ucapan = postData['ucapan'] || '';
-    const konfirmasi = postData['konfirmasi kehadiran'] || postData['kehadiran'] || '';
-    const jumlahTamu = postData['jumlah tamu'] || postData['jumlah_tamu'] || '1';
+    const konfirmasi = postData['kehadiran'] || postData['konfirmasi kehadiran'] || '';
+    const jumlahTamu = postData['jumlah_tamu'] || postData['jumlah tamu'] || '1';
     
     sheet.appendRow([timestamp, namaTamu, ucapan, konfirmasi, jumlahTamu]);
     
